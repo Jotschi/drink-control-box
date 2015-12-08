@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+
+import pygame
 from threading import Thread
 from sys import stdin
 import RPi.GPIO as GPIO
@@ -18,6 +20,8 @@ scancodes = {
     40: u'"', 41: u'`', 42: u'LSHFT', 43: u'\\', 44: u'Z', 45: u'X', 46: u'C', 47: u'V', 48: u'B', 49: u'N',
     50: u'M', 51: u',', 52: u'.', 53: u'/', 54: u'RSHFT', 56: u'LALT', 100: u'RALT'
 }
+
+pygame.mixer.init()
 
 LCD_RS = 25
 LCD_E  = 24
@@ -51,6 +55,9 @@ E_PULSE = 0.0005
 E_DELAY = 0.0005
 
 LEDFlag = False
+
+
+
  
 def setupPins():
   GPIO.setwarnings(False)
@@ -106,7 +113,7 @@ def main():
   
   while True:
     time.sleep(0.1)
-  
+
   #  triggerBar()
 
   #while True:
@@ -146,6 +153,7 @@ def reedCallback(channel):
 def b1callback(channel):
   print("CALLED 1")
   toggleLED()
+  playWarning()
 
 def b2callback(channel):
   print("CALLED 2")
@@ -164,16 +172,47 @@ def buttons():
     print("PRESSED")
   else:
     print("NOT PRESSED")
-  
+
+def playWarning():
+  pygame.mixer.music.load("warning.mp3")
+  pygame.mixer.music.play()
+  while pygame.mixer.music.get_busy() == True:
+    continue
+
+
+def fadeLED(led):
+  p = GPIO.PWM(led, 255)
+  fid = 0.015
+  fod = 0.005
+  mid = 0.200
+  p.start(0)
+  while True:
+    for i in range(0,100):
+      p.ChangeDutyCycle(i)
+      time.sleep(fid)
+    for i in range(100, 1, -1):
+      p.ChangeDutyCycle(i)
+      time.sleep(fod)
+    p.ChangeDutyCycle(0)
+    time.sleep(mid)
+  p.stop()
+
 
 def blib():
-  GPIO.output(L1, 255)
-  GPIO.output(L2, 255)     
-  GPIO.output(L3, 255)     
-  time.sleep(1)
-  GPIO.output(L1, 0) 
-  GPIO.output(L2, 0)     
-  GPIO.output(L3, 0)     
+  print("Blib")
+  faderThread = Thread(target=fadeLED, args=(L1,))
+  faderThread.start()
+  faderThread = Thread(target=fadeLED, args=(L2,))
+  faderThread.start()
+  faderThread = Thread(target=fadeLED, args=(L3,))
+  faderThread.start()
+  #GPIO.output(L1, 255)
+  #GPIO.output(L2, 255)     
+  #GPIO.output(L3, 255)     
+  #time.sleep(1)
+  #GPIO.output(L1, 0) 
+  #GPIO.output(L2, 0)     
+  #GPIO.output(L3, 0)     
 
  
 def lcd_init():
